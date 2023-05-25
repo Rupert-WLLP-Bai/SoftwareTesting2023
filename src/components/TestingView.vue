@@ -1,5 +1,6 @@
 <template>
     <div class="testing">
+      <h3>Step 1:上传测试用例</h3>
       <div class="upload">
         <el-upload
           class="upload-demo"
@@ -18,9 +19,12 @@
             </div>
           </template>
         </el-upload>
-
-        <el-button type="primary">
-          Upload<el-icon class="el-icon--right"><Upload /></el-icon>
+        
+      </div>
+      <h3>Step 2:开始运行程序</h3>
+      <div class="button-area">
+        <el-button type="primary" style="margin-top:20px">
+          开始测试<el-icon class="el-icon--right"><Upload /></el-icon>
         </el-button>
       </div>
     </div>
@@ -53,6 +57,10 @@
 .upload{
   width: 50%;
   margin: 0 auto; /* 水平居中 */
+  text-align: center;
 }
-
+.button-area{
+  margin: 0 auto; /* 水平居中 */
+  text-align: center;
+}
 </style>

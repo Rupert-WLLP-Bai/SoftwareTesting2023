@@ -4,21 +4,21 @@
       <el-col :span="14">
         <div class="left-main">
           <div class="title">
-            <h3 style="margin: 0;">题目：{{selectedQestion.title}}</h3>
+            <div style="display: flex;align-items: center;"><h3 style="margin: 0;">题目：</h3>{{selectedQuestion.title}}</div>
             <el-dropdown >
               <el-button type="link">
                 题目选择<el-icon class="el-icon--right"><arrow-down /></el-icon>
               </el-button>
               <template #dropdown>
-                <el-dropdown-menu :key="qestion.id" v-for="qestion in questionList">
-                  <el-dropdown-item>{{qestion.title}}</el-dropdown-item>
+                <el-dropdown-menu :key="question.id"  v-for="question in questionList">
+                  <el-dropdown-item  @click="selectQuestion(question)">{{question.title}}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
           </div>
           <div class="description">
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            {{ selectedQestion.description }}
+            {{ selectedQuestion.description }}
           </div>
           <div>
             <h3 style="margin: 0;margin-left:10px">代码实现</h3>
@@ -29,7 +29,7 @@
               <codemirror
                 v-model="code"
                 placeholder="Code goes here..."
-                :style="{ height: '100%' }"
+                style="min-height: 480px"
                 :autofocus="true"
                 :indent-with-tab="true"
                 :tab-size="2"
@@ -70,6 +70,7 @@ import { javascript } from '@codemirror/lang-javascript'
 import { oneDark } from '@codemirror/theme-one-dark'
 import ConsoleOutput from './ConsoleOutput.vue';
 import TestingView from './TestingView.vue';
+import questionListData from '../data/question.js';
 
 export default {
   components:{
@@ -78,7 +79,7 @@ export default {
     TestingView,
   },
   setup(){
-      const code = ref("console.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\n")
+      const code = ref("//coding here")
       const extensions = [javascript(), oneDark]
 
       // Codemirror EditorView instance ref
@@ -96,19 +97,8 @@ export default {
   },
   data() {
     return {
-      questionList:[
-        {
-          id: 1,
-          title: "三角形问题",
-          description: 1
-        },
-        {
-          id: 2,
-          title: "万年历问题",
-          description: 1
-        },
-      ],
-      selectedQestion:{
+      questionList: questionListData,
+      selectedQuestion:{
         id: null,
         title: null,
         description: "描述一下描述一下描述一下描述一下"
@@ -142,6 +132,9 @@ export default {
     }
   },
   methods: {
+    selectQuestion(question) {
+      this.selectedQuestion  = question;
+    }
   },
   computed: {
     
