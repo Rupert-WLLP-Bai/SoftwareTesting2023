@@ -19,7 +19,19 @@
         type: Array,
         required: true
       }
-    }
+    },
+    methods: {
+        saveToFile() {
+        const content = this.outputs.map(output => output.text).join('\n');
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'console_output.txt';
+        link.click();
+        URL.revokeObjectURL(url);
+        }
+  }
   }
   </script>
   
