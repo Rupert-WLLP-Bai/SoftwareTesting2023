@@ -18,7 +18,7 @@
       outputs: {
         type: Array,
         required: true
-      }
+      },
     },
     methods: {
         saveToFile() {

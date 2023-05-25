@@ -50,7 +50,7 @@
         <div class="right-main">
           <el-tabs type="border-card" style="height:100%">
             <el-tab-pane label="测试">
-              <TestingView />
+              <TestingView :code="code"/>
             </el-tab-pane>
 
             <el-tab-pane label="控制台">
