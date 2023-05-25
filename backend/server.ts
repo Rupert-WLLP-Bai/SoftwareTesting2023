@@ -1,6 +1,6 @@
 /**
  * Author: Norfloxaciner Bai
- * Version: V0.1.2
+ * Version: V0.1.2 fix-1
  * Date: 2023.05.25
  * License: MIT
  *
@@ -281,6 +281,79 @@ async function handleRunTests(req: Request, res: Response) {
 
 // Set up the route for running tests
 app.post('/run-tests', upload.fields([{ name: 'function', maxCount: 1 }, { name: 'testcases', maxCount: 1 }]), handleRunTests);
+
+
+/**
+ * Request handler for running tests from string
+ * @param req The request object
+ * @param res The response object
+ * @returns Promise of the test results
+ * @throws Error if the test cases file is empty
+ * @throws Error if the function code is empty
+ * @throws Error if the function code is invalid
+ * @throws Error if the test cases file is invalid
+ * @throws Error if there is an error running the tests
+ */
+app.post('/run-tests-string', upload.single('testcases'), async (req: Request, res: Response) => {
+  logger.info('Running tests from string...');
+  const functionCode = req.body.functionCode? req.body.functionCode : null;
+  // 如果不存在functionCode，抛出异常
+  if (!functionCode) {
+    logger.warn('Empty function code.');
+    return res.status(400).send('Empty function code.');
+  }
+  const testCasesFile = req.file ? req.file : null;
+  // 如果不存在testCasesFile，抛出异常
+  if (!testCasesFile) {
+    logger.warn('Empty test cases file.');
+    return res.status(400).send('Empty test cases file.');
+  }
+
+  logger.debug(`Function code: ${functionCode}`);
+  logger.debug(`Test cases file: ${testCasesFile}`);
+
+  if (!functionCode) {
+    logger.warn('Empty function code.');
+    return res.status(400).send('Empty function code.');
+  }
+
+  const testCases: any[] = [];
+
+  const functionInfo = parseFunctionCode(functionCode);
+  if (!functionInfo) {
+    logger.warn('Invalid function code.');
+    return res.status(400).send('Invalid function code.');
+  }
+
+  fs.createReadStream(testCasesFile.path)
+    .pipe(csv())
+    .on('data', (data) => {
+      testCases.push(data);
+    })
+    .on('end', () => {
+      logger.debug(`Test cases: ${JSON.stringify(testCases)}`);
+      runTests(functionInfo, testCases)
+        .then((results) => {
+          const savePromises = results.map((result: any) => {
+            const testResult = new TestResult(result);
+            return testResult.save();
+          });
+
+          Promise.all(savePromises)
+            .then(() => {
+              res.json(results);
+            })
+            .catch((err) => {
+              logger.error('Error saving test results.', err);
+              res.status(500).send('Error saving test results.');
+            });
+        })
+        .catch((err) => {
+          logger.error('Error running tests.', err);
+          res.status(500).send('Error running tests.');
+        });
+    });
+});
 
 // Start the server
 app.listen(3000, () => {
