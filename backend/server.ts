@@ -1,14 +1,41 @@
+/**
+ * Author: Norfloxaciner Bai
+ * Version: V0.1.2
+ * Date: 2023.05.25
+ * License: MIT
+ *
+ * Description: This is a server-side script for running function tests and storing results in MongoDB.
+ * The script is based on the following technologies:
+ * - Express: https://expressjs.com/
+ * - Multer: https://www.npmjs.com/package/multer
+ * - CSV Parser: https://www.npmjs.com/package/csv-parser
+ * - Mongoose: https://mongoosejs.com/
+ * - Winston: https://www.npmjs.com/package/winston
+ * - Jest: https://jestjs.io/
+ * - TypeScript: https://www.typescriptlang.org/
+ * - MongoDB: https://www.mongodb.com/
+ * 
+ * Update history:
+ * 2021.05.25 - V0.1.0 - Initial version
+ * 2021.05.25 - V0.1.1 - Add function information parsing
+ * 2021.05.25 - V0.1.2 - Add function call and test case execution, fix bugs in storing test results to MongoDB
+ * 
+ * Issues:
+ * 1. 存储在MongoDB中的测试结果的结构还需要修改, 现在保存的functionId和testCaseId是函数的名称和测试用例的完整输出, 需要修改为函数的ID和测试用例的ID
+ * 2. 在Issue 1的基础上, 把存储的字段改为functionId, functionName, testCaseId, testCaseInput, testCaseOutput, result(true/false), timestamp, message(错误信息)
+ */
+
 import express, { Express, Request, Response } from 'express';
 import multer, { Multer } from 'multer';
 import csv from 'csv-parser';
-import mongoose, { Document, Schema, Model, Mongoose } from 'mongoose';
+import mongoose, { Document, Schema, Model } from 'mongoose';
 import fs from 'fs';
 import winston, { Logger } from 'winston';
 import { runCLI } from 'jest';
 import { Config } from '@jest/types';
 import ts from 'typescript';
 
-// 定义测试结果的接口
+// Define the interface for the test result document
 interface ITestResult extends Document {
   timestamp: Date;
   functionId: string;
@@ -16,25 +43,25 @@ interface ITestResult extends Document {
   result: boolean;
 }
 
-// 创建日志记录器
+// Create a logger
 const logger: Logger = winston.createLogger({
-  level: 'info',
+  level: 'debug',
   format: winston.format.json(),
   transports: [
     new winston.transports.Console({ format: winston.format.simple() }),
   ],
 });
 
-// 创建 Express 应用程序实例
+// Create an Express application instance
 const app: Express = express();
 const upload: Multer = multer({ dest: 'uploads/' });
 
-// 连接 MongoDB 数据库
+// Connect to the MongoDB database
 mongoose.connect('mongodb://localhost/testtool');
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
-// 创建测试结果数据模型
+// Create the test result data model
 const TestResultSchema: Schema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   functionId: String,
@@ -42,9 +69,9 @@ const TestResultSchema: Schema = new mongoose.Schema({
   result: Boolean,
 });
 
-const TestResult: any = mongoose.model('TestResult', TestResultSchema);
+const TestResult: Model<ITestResult> = mongoose.model<ITestResult>('TestResult', TestResultSchema);
 
-// 定义函数的信息结构
+// Define the function information structure
 interface FunctionInfo {
   name: string;
   params: string[];
@@ -52,9 +79,9 @@ interface FunctionInfo {
 }
 
 /**
- * 处理函数代码，解析函数信息
- * @param code 函数代码
- * @returns 函数信息对象或 null
+ * Parse function code and extract function information
+ * @param code The code of the function
+ * @returns FunctionInfo object or null
  */
 function parseFunctionCode(code: string): FunctionInfo | null {
   const sourceFile = ts.createSourceFile('temp.ts', code, ts.ScriptTarget.ES2015, true);
@@ -80,9 +107,9 @@ function parseFunctionCode(code: string): FunctionInfo | null {
 }
 
 /**
- * 在语法树中查找函数声明
- * @param node 当前节点
- * @returns 函数声明或 undefined
+ * Find the function declaration in the syntax tree
+ * @param node The current node
+ * @returns Function declaration or undefined
  */
 function findFunctionDeclaration(node: ts.Node): ts.FunctionDeclaration | undefined {
   if (ts.isFunctionDeclaration(node)) {
@@ -93,10 +120,10 @@ function findFunctionDeclaration(node: ts.Node): ts.FunctionDeclaration | undefi
 }
 
 /**
- * 调用函数并返回结果
- * @param functionInfo 函数信息
- * @param inputParams 输入参数
- * @returns 函数执行结果
+ * Call the function with the given input parameters
+ * @param functionInfo The function information
+ * @param inputParams The input parameters
+ * @returns The result of the function call
  */
 function callFunction(functionInfo: FunctionInfo, inputParams: Record<string, any>): any {
   logger.debug(`Calling function ${functionInfo.name} with parameters ${JSON.stringify(inputParams)}`);
@@ -114,10 +141,10 @@ function callFunction(functionInfo: FunctionInfo, inputParams: Record<string, an
 }
 
 /**
- * 运行函数测试
- * @param functionInfo 函数信息
- * @param testCases 测试用例
- * @returns 测试结果的 Promise
+ * Run function tests
+ * @param functionInfo The function information
+ * @param testCases The test cases
+ * @returns Promise of the test results
  */
 function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -169,29 +196,29 @@ function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<any> {
       [process.cwd()]
     )
       .then(({ results }) => {
-        const result = results.testResults[0].testResults.map((testResult) => {
-          const { title, status, failureMessages } = testResult;
+        const testResults = results.testResults[0].testResults.map((testResult) => {
+          const { title, status } = testResult;
           return {
-            title,
-            status,
-            failureMessages,
+            functionId: functionInfo.name,
+            testCaseId: title,
+            result: status === 'passed',
           };
         });
 
-        logger.debug(`Test result: ${JSON.stringify(result)}`);
+        logger.debug(`Test results: ${JSON.stringify(testResults)}`);
 
         fs.unlinkSync(tempTestFile);
 
-        resolve(result);
+        resolve(testResults);
       })
       .catch(reject);
   });
 }
 
 /**
- * 运行测试的 HTTP POST 路由处理函数
- * @param req 请求对象
- * @param res 响应对象
+ * Request handler for running tests
+ * @param req The request object
+ * @param res The response object
  */
 async function handleRunTests(req: Request, res: Response) {
   logger.info('Running tests...');
@@ -252,10 +279,10 @@ async function handleRunTests(req: Request, res: Response) {
     });
 }
 
-// 设置运行测试的 HTTP POST 路由
+// Set up the route for running tests
 app.post('/run-tests', upload.fields([{ name: 'function', maxCount: 1 }, { name: 'testcases', maxCount: 1 }]), handleRunTests);
 
-// 启动服务器
+// Start the server
 app.listen(3000, () => {
   logger.info('Server is running on port 3000');
 });

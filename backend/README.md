@@ -1,5 +1,38 @@
 # 后端测试
 
+
+## v0.1.2
+
+2023年5月25日15:08:18
+```js
+/**
+ * Author: Norfloxaciner Bai
+ * Version: V0.1.2
+ * Date: 2023.05.25
+ * License: MIT
+ *
+ * Description: This is a server-side script for running function tests and storing results in MongoDB.
+ * The script is based on the following technologies:
+ * - Express: https://expressjs.com/
+ * - Multer: https://www.npmjs.com/package/multer
+ * - CSV Parser: https://www.npmjs.com/package/csv-parser
+ * - Mongoose: https://mongoosejs.com/
+ * - Winston: https://www.npmjs.com/package/winston
+ * - Jest: https://jestjs.io/
+ * - TypeScript: https://www.typescriptlang.org/
+ * - MongoDB: https://www.mongodb.com/
+ * 
+ * Update history:
+ * 2021.05.25 - V0.1.0 - Initial version
+ * 2021.05.25 - V0.1.1 - Add function information parsing
+ * 2021.05.25 - V0.1.2 - Add function call and test case execution, fix bugs in storing test results to MongoDB
+ * 
+ * Issues:
+ * 1. 存储在MongoDB中的测试结果的结构还需要修改, 现在保存的functionId和testCaseId是函数的名称和测试用例的完整输出, 需要修改为函数的ID和测试用例的ID
+ * 2. 在Issue 1的基础上, 把存储的字段改为functionId, functionName, testCaseId, testCaseInput, testCaseOutput, result(true/false), timestamp, message(错误信息)
+ */
+ ```
+
 ## v0.1.0
 
 2023年5月25日15:08:18
@@ -64,3 +97,4 @@ a,b,expectedOutput
 1. 最好迁移到TypeScript，方便类型检查
 2. 返回的JSON要简要的展示出哪个用例出的问题，actual和expectd的比对（参考jest命令行的比对）
 3. MongoDB里面存的东西还有点问题
+
