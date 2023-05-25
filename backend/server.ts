@@ -19,10 +19,16 @@
  * 2021.05.25 - V0.1.0 - Initial version
  * 2021.05.25 - V0.1.1 - Add function information parsing
  * 2021.05.25 - V0.1.2 - Add function call and test case execution, fix bugs in storing test results to MongoDB
+ * 2021.05.25 - V0.1.2-fix-1 
+ *                     - Fix bugs in storing test results to MongoDB
+ *                     - Made MongoDB connection and handling asynchronous
+ *                     - Made file handling and test execution asynchronous
+ *                     - Added optimization suggestions in issues section
  * 
  * Issues:
- * 1. 存储在MongoDB中的测试结果的结构还需要修改, 现在保存的functionId和testCaseId是函数的名称和测试用例的完整输出, 需要修改为函数的ID和测试用例的ID
- * 2. 在Issue 1的基础上, 把存储的字段改为functionId, functionName, testCaseId, testCaseInput, testCaseOutput, result(true/false), timestamp, message(错误信息)
+ * 1. The structure of the test results stored in MongoDB needs to be modified. Currently, the functionId and testCaseId are saved as the function's name and the complete output of the test case, respectively. They should be changed to the function's ID and the test case's ID.
+ * 2. Based on Issue 1, change the stored fields to functionId, functionName, testCaseId, testCaseInput, testCaseOutput, result (true/false), timestamp, and message (error message).
+ * 3. The functionCode and testCasesFile handling in handleRunTestsString can be optimized by using async/await.
  */
 
 import express, { Express, Request, Response } from 'express';
@@ -39,8 +45,12 @@ import ts from 'typescript';
 interface ITestResult extends Document {
   timestamp: Date;
   functionId: string;
+  functionName: string;
   testCaseId: string;
+  testCaseInput: string;
+  testCaseOutput: string;
   result: boolean;
+  message: string;
 }
 
 // Create a logger
@@ -57,16 +67,26 @@ const app: Express = express();
 const upload: Multer = multer({ dest: 'uploads/' });
 
 // Connect to the MongoDB database
-mongoose.connect('mongodb://localhost/testtool');
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+async function connectToDatabase() {
+  try {
+    await mongoose.connect('mongodb://localhost/testtool');
+    logger.info('Connected to MongoDB');
+  } catch (error) {
+    logger.error('Error connecting to MongoDB:', error);
+    throw error;
+  }
+}
 
 // Create the test result data model
 const TestResultSchema: Schema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   functionId: String,
+  functionName: String,
   testCaseId: String,
+  testCaseInput: String,
+  testCaseOutput: String,
   result: Boolean,
+  message: String,
 });
 
 const TestResult: Model<ITestResult> = mongoose.model<ITestResult>('TestResult', TestResultSchema);
@@ -146,7 +166,7 @@ function callFunction(functionInfo: FunctionInfo, inputParams: Record<string, an
  * @param testCases The test cases
  * @returns Promise of the test results
  */
-function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<any> {
+async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<any> {
   return new Promise((resolve, reject) => {
     const jestConfig: Config.InitialOptions = {
       silent: true,
@@ -197,11 +217,15 @@ function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<any> {
     )
       .then(({ results }) => {
         const testResults = results.testResults[0].testResults.map((testResult) => {
-          const { title, status } = testResult;
+          const { title, status, failureMessages } = testResult;
           return {
             functionId: functionInfo.name,
+            functionName: functionInfo.name,
             testCaseId: title,
+            testCaseInput: '',
+            testCaseOutput: '',
             result: status === 'passed',
+            message: failureMessages.join('\n'),
           };
         });
 
@@ -296,14 +320,14 @@ app.post('/run-tests', upload.fields([{ name: 'function', maxCount: 1 }, { name:
  */
 app.post('/run-tests-string', upload.single('testcases'), async (req: Request, res: Response) => {
   logger.info('Running tests from string...');
-  const functionCode = req.body.functionCode? req.body.functionCode : null;
-  // 如果不存在functionCode，抛出异常
+  const functionCode = req.body.functionCode ? req.body.functionCode : null;
+  // If functionCode doesn't exist, throw an exception
   if (!functionCode) {
     logger.warn('Empty function code.');
     return res.status(400).send('Empty function code.');
   }
   const testCasesFile = req.file ? req.file : null;
-  // 如果不存在testCasesFile，抛出异常
+  // If testCasesFile doesn't exist, throw an exception
   if (!testCasesFile) {
     logger.warn('Empty test cases file.');
     return res.status(400).send('Empty test cases file.');
@@ -325,37 +349,36 @@ app.post('/run-tests-string', upload.single('testcases'), async (req: Request, r
     return res.status(400).send('Invalid function code.');
   }
 
-  fs.createReadStream(testCasesFile.path)
-    .pipe(csv())
+  const stream = fs.createReadStream(testCasesFile.path);
+  stream.pipe(csv())
     .on('data', (data) => {
       testCases.push(data);
     })
-    .on('end', () => {
+    .on('end', async () => {
       logger.debug(`Test cases: ${JSON.stringify(testCases)}`);
-      runTests(functionInfo, testCases)
-        .then((results) => {
-          const savePromises = results.map((result: any) => {
-            const testResult = new TestResult(result);
-            return testResult.save();
-          });
-
-          Promise.all(savePromises)
-            .then(() => {
-              res.json(results);
-            })
-            .catch((err) => {
-              logger.error('Error saving test results.', err);
-              res.status(500).send('Error saving test results.');
-            });
-        })
-        .catch((err) => {
-          logger.error('Error running tests.', err);
-          res.status(500).send('Error running tests.');
+      try {
+        const results = await runTests(functionInfo, testCases);
+        const savePromises = results.map((result: any) => {
+          const testResult = new TestResult(result);
+          return testResult.save();
         });
+
+        await Promise.all(savePromises);
+        res.json(results);
+      } catch (error) {
+        logger.error('Error running tests.', error);
+        res.status(500).send('Error running tests.');
+      }
     });
 });
 
 // Start the server
-app.listen(3000, () => {
-  logger.info('Server is running on port 3000');
-});
+connectToDatabase()
+  .then(() => {
+    app.listen(3000, () => {
+      logger.info('Server is running on port 3000');
+    });
+  })
+  .catch((error) => {
+    logger.error('Error starting server:', error);
+  });
