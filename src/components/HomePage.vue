@@ -4,7 +4,7 @@
       <el-col :span="14">
         <div class="left-main">
           <div class="title">
-            <p>题目：{{selectedQestion.title}}</p>
+            <h3 style="margin: 0;">题目：{{selectedQestion.title}}</h3>
             <el-dropdown >
               <el-button type="link">
                 题目选择<el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -20,8 +20,27 @@
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             {{ selectedQestion.description }}
           </div>
-          <div class="code">
-
+          <div>
+            <h3 style="margin: 0;margin-left:10px">代码实现</h3>
+          </div>
+          
+          <div class="codeBox">
+            <el-scrollbar >
+              <codemirror
+                v-model="code"
+                placeholder="Code goes here..."
+                :style="{ height: '100%' }"
+                :autofocus="true"
+                :indent-with-tab="true"
+                :tab-size="2"
+                :extensions="extensions"
+                @ready="handleReady"
+                @change="log('change', $event)"
+                @focus="log('focus', $event)"
+                @blur="log('blur', $event)"
+              />
+            </el-scrollbar>
+            
           </div>
         </div>
       </el-col>
@@ -29,7 +48,15 @@
       <!-- 右侧栏 -->
       <el-col :span="10">
         <div class="right-main">
+          <el-tabs type="border-card" style="height:100%">
+            <el-tab-pane label="测试">
+              测试
+            </el-tab-pane>
 
+            <el-tab-pane label="控制台">
+              控制台
+            </el-tab-pane>
+          </el-tabs>
         </div>
       </el-col>
     </el-row>
@@ -37,7 +64,32 @@
 </template>
 
 <script>
+import { Codemirror   } from 'vue-codemirror'
+import { ref, shallowRef } from 'vue';
+import { javascript } from '@codemirror/lang-javascript'
+import { oneDark } from '@codemirror/theme-one-dark'
+
 export default {
+  components:{
+    Codemirror 
+  },
+  setup(){
+    const code = ref("console.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\n")
+      const extensions = [javascript(), oneDark]
+
+      // Codemirror EditorView instance ref
+      const view = shallowRef()
+      const handleReady = (payload) => {
+        view.value = payload.view
+      }
+
+      return {
+        code,
+        extensions,
+        handleReady,
+        log: console.log,
+      }
+  },
   data() {
     return {
       questionList:[
@@ -55,10 +107,19 @@ export default {
       selectedQestion:{
         id: null,
         title: null,
-        description: "描述一下"
+        description: "描述一下描述一下描述一下描述一下"
       },
+
     }
   },
+  methods: {
+  },
+  computed: {
+    
+  },
+  mounted() {
+  }
+
   
 }
 </script>
@@ -80,7 +141,6 @@ export default {
 
 .right-main{
   height: 97%;
-  padding: 10px;
   margin: 10px;
   margin-left: 0px;
   background-color: white;
@@ -110,4 +170,14 @@ export default {
 .description{
   padding: 10px;
 }
+
+.codeBox {
+  height: 480px;
+  padding: 20px;
+  font-family: Arial, monospace;
+  font-size: 16px;
+  letter-spacing: 1.5px;
+  overflow-y: auto;
+}
+ 
 </style>
