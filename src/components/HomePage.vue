@@ -50,11 +50,11 @@
         <div class="right-main">
           <el-tabs type="border-card" style="height:100%">
             <el-tab-pane label="测试">
-              测试
+              <TestingView />
             </el-tab-pane>
 
             <el-tab-pane label="控制台">
-              控制台
+              <ConsoleOutput :outputs="consoleOutput" />
             </el-tab-pane>
           </el-tabs>
         </div>
@@ -68,13 +68,17 @@ import { Codemirror   } from 'vue-codemirror'
 import { ref, shallowRef } from 'vue';
 import { javascript } from '@codemirror/lang-javascript'
 import { oneDark } from '@codemirror/theme-one-dark'
+import ConsoleOutput from './ConsoleOutput.vue';
+import TestingView from './TestingView.vue';
 
 export default {
   components:{
-    Codemirror 
+    Codemirror,
+    ConsoleOutput,
+    TestingView,
   },
   setup(){
-    const code = ref("console.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\n")
+      const code = ref("console.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\nconsole.log('Hello, world!')\n")
       const extensions = [javascript(), oneDark]
 
       // Codemirror EditorView instance ref
@@ -109,6 +113,31 @@ export default {
         title: null,
         description: "描述一下描述一下描述一下描述一下"
       },
+      consoleOutput: [
+        { id: 1, text: 'Running test case 1...' },
+        { id: 2, text: 'Initializing system components...' },
+        { id: 3, text: 'Component A initialized.' },
+        { id: 4, text: 'Component B initialized.' },
+        { id: 5, text: 'System initialization complete.' },
+        { id: 6, text: 'Executing test steps...' },
+        { id: 7, text: 'Test step 1 completed successfully.' },
+        { id: 8, text: 'Test step 2 completed successfully.' },
+        { id: 9, text: 'Test step 3 completed successfully.' },
+        { id: 10, text: 'All test steps executed.' },
+        { id: 11, text: 'Test case 1 encountered a non-critical issue.' },
+        { id: 12, text: 'Test case 1 failed. Reason: Assertion failed in test step 4.' },
+        { id: 13, text: 'Running test case 2...' },
+        { id: 14, text: 'Initializing system components...' },
+        { id: 15, text: 'Component A initialized.' },
+        { id: 16, text: 'Component B initialized.' },
+        { id: 17, text: 'System initialization complete.' },
+        { id: 18, text: 'Executing test steps...' },
+        { id: 19, text: 'Test step 1 completed successfully.' },
+        { id: 20, text: 'Test step 2 completed successfully.' },
+        { id: 21, text: 'Test step 3 completed successfully.' },
+        { id: 22, text: 'All test steps executed.' },
+        { id: 23, text: 'Test case 2 passed successfully.' },
+      ],
 
     }
   },
