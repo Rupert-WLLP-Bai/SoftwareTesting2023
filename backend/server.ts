@@ -1,6 +1,6 @@
 /**
  * Author: Norfloxaciner Bai
- * Version: V0.1.2 fix-1
+ * Version: V0.1.2 fix-2
  * Date: 2023.05.25
  * License: MIT
  *
@@ -24,6 +24,11 @@
  *                     - Made MongoDB connection and handling asynchronous
  *                     - Made file handling and test execution asynchronous
  *                     - Added optimization suggestions in issues section
+ * 2021.05.26 - V0.1.2-fix-2
+ *                    - 传入的函数只能使用JS语法，不能使用TS语法
+ *                    - 传入的函数只能有一个
+ *                    - 传入的函数的参数默认是string类型，需要进行类型转换
+ *                    - TODO: 传入的函数可以有很多个, 但是用于测试的函数只能有一个
  * 
  * Issues:
  * 1. The structure of the test results stored in MongoDB needs to be modified. Currently, the functionId and testCaseId are saved as the function's name and the complete output of the test case, respectively. They should be changed to the function's ID and the test case's ID.
@@ -69,7 +74,15 @@ const upload: Multer = multer({ dest: 'uploads/' });
 // Connect to the MongoDB database
 async function connectToDatabase() {
   try {
-    await mongoose.connect('mongodb://localhost/testtool');
+    var host = '119.3.154.46';
+    var port = '27017';
+    var database = 'testtool';
+    var uri = `mongodb://${host}:${port}/${database}`;
+    logger.info('Connecting to MongoDB...');
+    await mongoose.connect(uri, {
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+    }); // Connect to MongoDB
     logger.info('Connected to MongoDB');
   } catch (error) {
     logger.error('Error connecting to MongoDB:', error);
@@ -146,7 +159,7 @@ function findFunctionDeclaration(node: ts.Node): ts.FunctionDeclaration | undefi
  * @returns The result of the function call
  */
 function callFunction(functionInfo: FunctionInfo, inputParams: Record<string, any>): any {
-  logger.debug(`Calling function ${functionInfo.name} with parameters ${JSON.stringify(inputParams)}`);
+  console.debug(`Calling function ${functionInfo.name} with parameters ${JSON.stringify(inputParams)}`);
   const { name, params, body } = functionInfo;
 
   const functionCall = `${name}(${params.map((param) => inputParams[param]).join(', ')})`;
@@ -197,8 +210,8 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
           });
 
           const output = callFunction(functionInfo, inputParams);
-          
-          const expectedOutput = JSON.parse(testCase.expectedOutput);
+
+          const expectedOutput = testCase.expectedOutput;
           expect(output).toEqual(expectedOutput);
         });
       });
@@ -229,8 +242,9 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
           };
         });
 
-        logger.debug(`Test results: ${JSON.stringify(testResults)}`);
-
+        // logger.debug(`Test results: ${JSON.stringify(testResults)}`);
+        
+        // FIXME: Delete temp test file
         fs.unlinkSync(tempTestFile);
 
         resolve(testResults);
@@ -273,7 +287,7 @@ async function handleRunTests(req: Request, res: Response) {
     return res.status(400).send('Invalid function code.');
   }
 
-  fs.createReadStream(testCasesFile.path)
+  fs.createReadStream(testCasesFile.path,{encoding: 'utf8'})
     .pipe(csv())
     .on('data', (data) => {
       testCases.push(data);

@@ -1,5 +1,22 @@
 # 后端测试
 
+## v0.1.2 fix-2
+
+**更新历史：**
+
+- **2023年5月26日12:23:46** - v0.1.2 fix-2版本发布
+  - 传入的函数只能使用JS语法，不能使用TS语法
+  - 传入的函数只能有一个
+  - 传入的函数的参数默认是string类型，需要进行类型转换
+
+**问题：**
+
+1. 需要修改存储在MongoDB中的测试结果的结构。目前，`functionId`和`testCaseId`分别保存为函数的名称和测试用例的完整输出。应将它们改为函数的ID和测试用例的ID。
+2. 根据问题1，将存储的字段改为`functionId`、`functionName`、`testCaseId`、`testCaseInput`、`testCaseOutput`、`result`（true/false）、`timestamp`和`message`（错误信息）。
+3. 可以通过使用async/await来优化`handleRunTestsString`中的`functionCode`和`testCasesFile`处理。
+4. **传入的函数可以有很多个, 但是用于测试的函数只能有一个**
+5. **传入的函数只能使用JS语法，不能使用TS语法**
+
 ## v0.1.2 fix-1
 
 **更新历史：**
