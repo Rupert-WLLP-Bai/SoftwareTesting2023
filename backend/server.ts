@@ -14,12 +14,12 @@
  * - Jest: https://jestjs.io/
  * - TypeScript: https://www.typescriptlang.org/
  * - MongoDB: https://www.mongodb.com/
- * 
+ *
  * Update history:
  * 2021.05.25 - V0.1.0 - Initial version
  * 2021.05.25 - V0.1.1 - Add function information parsing
  * 2021.05.25 - V0.1.2 - Add function call and test case execution, fix bugs in storing test results to MongoDB
- * 2021.05.25 - V0.1.2-fix-1 
+ * 2021.05.25 - V0.1.2-fix-1
  *                     - Fix bugs in storing test results to MongoDB
  *                     - Made MongoDB connection and handling asynchronous
  *                     - Made file handling and test execution asynchronous
@@ -29,7 +29,7 @@
  *                    - 传入的函数只能有一个
  *                    - 传入的函数的参数默认是string类型，需要进行类型转换
  *                    - TODO: 传入的函数可以有很多个, 但是用于测试的函数只能有一个
- * 
+ *
  * Issues:
  * 1. The structure of the test results stored in MongoDB needs to be modified. Currently, the functionId and testCaseId are saved as the function's name and the complete output of the test case, respectively. They should be changed to the function's ID and the test case's ID.
  * 2. Based on Issue 1, change the stored fields to functionId, functionName, testCaseId, testCaseInput, testCaseOutput, result (true/false), timestamp, and message (error message).
@@ -45,7 +45,6 @@ import winston, { Logger } from 'winston';
 import { runCLI } from 'jest';
 import { Config } from '@jest/types';
 import ts from 'typescript';
-import { randomInt } from 'crypto';
 
 // Define the interface for the test result document
 interface ITestResult extends Document {
@@ -61,11 +60,33 @@ interface ITestResult extends Document {
 
 // Create a logger
 const logger: Logger = winston.createLogger({
-  level: 'debug',
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.Console({ format: winston.format.simple() }),
-  ],
+      // 输出的日志格式 [时间] [日志级别] [日志内容]
+      // 不同的日志级别使用不同的颜色
+      // 日志级别设置为:debug
+      // 注意对齐
+      format: winston.format.combine(
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.printf(
+          (info) =>
+            `[${info.timestamp}] [${info.level}] ${info.message}`
+        )
+      ),
+      transports: [
+        new winston.transports.Console({
+          level: 'debug',
+          format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.printf(
+              (info) =>
+                `[${info.timestamp}] [${info.level}] ${info.message}` 
+            )
+          ),
+        }),
+        new winston.transports.File({
+          filename: 'logs/server.log',
+          level: 'debug',
+        }),
+      ],
 });
 
 // Create an Express application instance
@@ -204,9 +225,10 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
       describe('Function Tests', () => {
         test.each(testCases)('Test case %#: %p', (testCase) => {
           const inputParams = {};
-          Object.keys(testCase).forEach((column) => {
+          const { testcaseId, ...input } = testCase; // Extract testcaseId from the testCase object
+          Object.keys(input).forEach((column) => {
             if (functionInfo.params.includes(column)) {
-              inputParams[column] = JSON.parse(testCase[column]);
+              inputParams[column] = JSON.parse(input[column]);
             }
           });
 
@@ -232,31 +254,28 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
       .then(({ results }) => {
         const testResults = results.testResults[0].testResults.map((testResult) => {
           const { title, status, failureMessages } = testResult;
-          const match = title.match(/Test case (\d+): ({[^}]+})/); // 匹配测试用例的序号和输入参数
+          const match = title.match(/Test case (\d+): ({[^}]+})/); // Match the test case number and input parameters
           if (!match) {
             logger.error(`Error parsing test case: ${title}`);
             return null;
           }
+          const testCaseId = testCases[Number(match[1])].testcaseId; // Get the testcaseId from the corresponding test case object
           return {
             /*
-             * FIXME: #3 修改测试结果的数据结构
-             * 1. 去掉函数id这个字段
-             * 2. 从csv文件中读取测试用例的id（第一列）
-             * 3. 从csv文件中读取测试用例的输入参数（第二列到倒数第二列）
-             * 4. 从csv文件中读取测试用例的期望输出（最后一列）
-             */ 
-            functionId: randomInt(100000, 999999),  
+             * Update the test result data structure
+             * - Remove the functionId field
+             * - Use the testcaseId from the test case object
+             * - Use the input and expectedOutput fields from the test case object
+             */
             functionName: functionInfo.name,
-            testCaseId: match[1],
-            testCaseInput: match[2],
+            testCaseId: testCaseId,
+            testCaseInput: JSON.stringify(testCases[Number(match[1])]),
             testCaseOutput: '',
             result: status === 'passed',
             message: failureMessages.join('\n'),
           };
         });
 
-        // logger.debug(`Test results: ${JSON.stringify(testResults)}`);
-        
         fs.unlinkSync(tempTestFile);
 
         resolve(testResults);
@@ -264,6 +283,7 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
       .catch(reject);
   });
 }
+
 
 /**
  * Request handler for running tests
@@ -299,7 +319,7 @@ async function handleRunTests(req: Request, res: Response) {
     return res.status(400).send('Invalid function code.');
   }
 
-  fs.createReadStream(testCasesFile.path,{encoding: 'utf8'})
+  fs.createReadStream(testCasesFile.path, { encoding: 'utf8' })
     .pipe(csv())
     .on('data', (data) => {
       testCases.push(data);
@@ -330,8 +350,11 @@ async function handleRunTests(req: Request, res: Response) {
 }
 
 // Set up the route for running tests
-app.post('/run-tests', upload.fields([{ name: 'function', maxCount: 1 }, { name: 'testcases', maxCount: 1 }]), handleRunTests);
-
+app.post(
+  '/run-tests',
+  upload.fields([{ name: 'function', maxCount: 1 }, { name: 'testcases', maxCount: 1 }]),
+  handleRunTests
+);
 
 /**
  * Request handler for running tests from string
@@ -376,7 +399,8 @@ app.post('/run-tests-string', upload.single('testcases'), async (req: Request, r
   }
 
   const stream = fs.createReadStream(testCasesFile.path);
-  stream.pipe(csv())
+  stream
+    .pipe(csv())
     .on('data', (data) => {
       testCases.push(data);
     })
