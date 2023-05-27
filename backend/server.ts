@@ -45,6 +45,7 @@ import winston, { Logger } from 'winston';
 import { runCLI } from 'jest';
 import { Config } from '@jest/types';
 import ts from 'typescript';
+import { randomInt } from 'crypto';
 
 // Define the interface for the test result document
 interface ITestResult extends Document {
@@ -74,10 +75,10 @@ const upload: Multer = multer({ dest: 'uploads/' });
 // Connect to the MongoDB database
 async function connectToDatabase() {
   try {
-    var host = '119.3.154.46';
-    var port = '27017';
-    var database = 'testtool';
-    var uri = `mongodb://${host}:${port}/${database}`;
+    const host = '119.3.154.46';
+    const port = '27017';
+    const database = 'testtool';
+    const uri = `mongodb://${host}:${port}/${database}`;
     logger.info('Connecting to MongoDB...');
     await mongoose.connect(uri, {
       connectTimeoutMS: 10000,
@@ -231,11 +232,23 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
       .then(({ results }) => {
         const testResults = results.testResults[0].testResults.map((testResult) => {
           const { title, status, failureMessages } = testResult;
+          const match = title.match(/Test case (\d+): ({[^}]+})/); // 匹配测试用例的序号和输入参数
+          if (!match) {
+            logger.error(`Error parsing test case: ${title}`);
+            return null;
+          }
           return {
-            functionId: functionInfo.name,
+            /*
+             * FIXME: #3 修改测试结果的数据结构
+             * 1. 去掉函数id这个字段
+             * 2. 从csv文件中读取测试用例的id（第一列）
+             * 3. 从csv文件中读取测试用例的输入参数（第二列到倒数第二列）
+             * 4. 从csv文件中读取测试用例的期望输出（最后一列）
+             */ 
+            functionId: randomInt(100000, 999999),  
             functionName: functionInfo.name,
-            testCaseId: title,
-            testCaseInput: '',
+            testCaseId: match[1],
+            testCaseInput: match[2],
             testCaseOutput: '',
             result: status === 'passed',
             message: failureMessages.join('\n'),
@@ -244,7 +257,6 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
 
         // logger.debug(`Test results: ${JSON.stringify(testResults)}`);
         
-        // FIXME: Delete temp test file
         fs.unlinkSync(tempTestFile);
 
         resolve(testResults);
