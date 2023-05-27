@@ -112,31 +112,29 @@ export default {
         type: 'success',
       });
 
-      console.log(this.file);
-      console.log(this.code);
+      // console.log(this.file);
+      // console.log(this.code);
 
       const formData = new FormData();
       formData.append('testcases', this.file);
-      
-      // FIXME: 这里需要把代码存储在一个临时文件中，然后再把这个文件也加入到formData中
-      // 把输入的代码存储在一个临时javascript文件中
-      // 输出这个文件的路径和内容
-      // 把这个文件也加入到formData中(key是function)
+      formData.append('functionCode', this.code);
 
-      
+      // console.log(formData.get('testcases'));
+      // console.log(formData.get('fucntionCode'));
 
-      axios
-        .post('http://localhost:3000/run-tests', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        })
-        .then(res => {
-          console.log(res);
-        })
-        .catch(err => {
-          console.log(err);
-        })
+
+      // axios配置跨域
+      axios.defaults.withCredentials = false;
+      axios.post('http://localhost:3000/run-tests-string', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }).then((response) => {
+        console.log(response);
+      }).catch((error) => {
+        console.log(error);
+      });
+
     },
   },
   mounted() {

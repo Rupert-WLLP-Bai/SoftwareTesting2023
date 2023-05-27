@@ -367,8 +367,20 @@ app.post(
  * @throws Error if the test cases file is invalid
  * @throws Error if there is an error running the tests
  */
+/**
+ * Request handler for running tests from string
+ * @param req The request object
+ * @param res The response object
+ * @returns Promise of the test results
+ * @throws Error if the test cases file is empty
+ * @throws Error if the function code is empty
+ * @throws Error if the function code is invalid
+ * @throws Error if the test cases file is invalid
+ * @throws Error if there is an error running the tests
+ */
 app.post('/run-tests-string', upload.single('testcases'), async (req: Request, res: Response) => {
   logger.info('Running tests from string...');
+  // logger.debug(`Request body: ${JSON.stringify(req.body)}`);
   const functionCode = req.body.functionCode ? req.body.functionCode : null;
   // If functionCode doesn't exist, throw an exception
   if (!functionCode) {
@@ -414,7 +426,7 @@ app.post('/run-tests-string', upload.single('testcases'), async (req: Request, r
         });
 
         await Promise.all(savePromises);
-        res.json(results);
+        res.json(results);  // 返回200 ERROR 如何处理
       } catch (error) {
         logger.error('Error running tests.', error);
         res.status(500).send('Error running tests.');
@@ -422,9 +434,14 @@ app.post('/run-tests-string', upload.single('testcases'), async (req: Request, r
     });
 });
 
+// 配置跨域
+import cors from 'cors';
+
+
 // Start the server
 connectToDatabase()
   .then(() => {
+    app.use(cors());
     app.listen(3000, () => {
       logger.info('Server is running on port 3000');
     });
