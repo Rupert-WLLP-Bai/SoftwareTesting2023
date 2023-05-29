@@ -131,6 +131,20 @@ export default {
         },
       }).then((response) => {
         console.log(response);
+        ElMessage({
+          message: '测试结束',
+          type: 'success',
+        });
+        // 在前端弹窗展示测试结果
+        // response.data是一个数组
+        // 最多展示前5个测试用例的结果
+        const testResults = response.data.slice(0, 5);
+        testResults.forEach((testResult) => {
+          ElMessage({
+            message: testResult,
+            type: 'success',
+          });
+        });
       }).catch((error) => {
         console.log(error);
       })
@@ -157,6 +171,8 @@ export default {
       }
   },
   mounted() {
+    // 调用一次parseCSVData，防止tableData为空
+    this.parseCSVData('');
     // 测试跨域
     this.testCors();
     // 监听窗口大小变化
