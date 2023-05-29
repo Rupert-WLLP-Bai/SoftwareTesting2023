@@ -332,7 +332,8 @@ async function handleRunTests(req: Request, res: Response) {
             const testResult = new TestResult(result);
             return testResult.save();
           });
-
+          res.header('Access-Control-Allow-Origin', '*');
+          res.header('Access-Control-Allow-Headers', 'Content-Type');
           Promise.all(savePromises)
             .then(() => {
               res.json(results);
@@ -426,6 +427,8 @@ app.post('/run-tests-string', upload.single('testcases'), async (req: Request, r
         });
 
         await Promise.all(savePromises);
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', 'Content-Type');
         res.json(results);  // 返回200 ERROR 如何处理
       } catch (error) {
         logger.error('Error running tests.', error);
@@ -434,14 +437,20 @@ app.post('/run-tests-string', upload.single('testcases'), async (req: Request, r
     });
 });
 
-// 配置跨域
-import cors from 'cors';
-
+// 测试跨域的接口
+app.get('/cors', (req: Request, res: Response) => {
+  // 输出前端的ip地址，X-Forwarded-For是nginx的配置
+  logger.info('Test CORS...');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.json({
+    message: 'CORS test passed.',
+  });
+});
 
 // Start the server
 connectToDatabase()
   .then(() => {
-    app.use(cors());
     app.listen(3000, () => {
       logger.info('Server is running on port 3000');
     });

@@ -133,11 +133,33 @@ export default {
         console.log(response);
       }).catch((error) => {
         console.log(error);
-      });
-
+      })
     },
+
+      // 测试跨域的函数
+      testCors(){
+        axios.defaults.withCredentials = false;
+        axios.get('http://localhost:3000/cors').then((response) => {
+          console.log(response);
+          // 弹出提示
+          ElMessage({
+            message: response.data.message,
+            type: 'success',
+          });
+        }).catch((error) => {
+          console.log(error);
+          // 弹出提示
+          ElMessage({
+            message: error.message,
+            type: 'error',
+          });
+        })
+      }
   },
   mounted() {
+    // 测试跨域
+    this.testCors();
+    // 监听窗口大小变化
     window.addEventListener('resize', this.adjustTableHeight);
   },
   beforeUnmount() {
