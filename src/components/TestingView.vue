@@ -2,14 +2,8 @@
   <div class="testing">
     <h3>Step 1: 上传测试用例</h3>
     <div class="upload">
-      <el-upload
-        class="upload-demo"
-        drag
-        action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
-        multiple
-        :before-upload="beforeUpload"
-        @change="handleFileChange"
-      >
+      <el-upload class="upload-demo" drag action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15" multiple
+        :before-upload="beforeUpload" @change="handleFileChange">
         <el-icon class="el-icon--upload"><upload-filled /></el-icon>
         <div class="el-upload__text">
           Drop file here or <em>click to upload</em>
@@ -34,7 +28,9 @@
     <h3>Step 2: 开始运行程序</h3>
     <div class="button-area">
       <el-button type="primary" style="margin-top:20px" @click="startTesting">
-        开始测试<el-icon class="el-icon--right"><Upload /></el-icon>
+        开始测试<el-icon class="el-icon--right">
+          <Upload />
+        </el-icon>
       </el-button>
     </div>
   </div>
@@ -137,38 +133,51 @@ export default {
         });
         // 在前端弹窗展示测试结果
         // response.data是一个数组
-        // 最多展示前5个测试用例的结果
-        const testResults = response.data.slice(0, 5);
+        console.log(response.data);
+        this.$emit('responseData', response.data);
+        const testResults = response.data;
+        var testSuccess = true;
         testResults.forEach((testResult) => {
+          // 检查测试结果是否全部通过
+          if (testResult.result === false) {
+            testSuccess = false;
+          }
+        });
+        if (testSuccess) {
           ElMessage({
-            message: testResult,
+            message: '测试全部通过',
             type: 'success',
           });
-        });
+        } else {
+          ElMessage({
+            message: '测试未全部通过',
+            type: 'error',
+          });
+        }
       }).catch((error) => {
         console.log(error);
       })
     },
 
-      // 测试跨域的函数
-      testCors(){
-        axios.defaults.withCredentials = false;
-        axios.get('http://localhost:3000/cors').then((response) => {
-          console.log(response);
-          // 弹出提示
-          ElMessage({
-            message: response.data.message,
-            type: 'success',
-          });
-        }).catch((error) => {
-          console.log(error);
-          // 弹出提示
-          ElMessage({
-            message: error.message,
-            type: 'error',
-          });
-        })
-      }
+    // 测试跨域的函数
+    testCors() {
+      axios.defaults.withCredentials = false;
+      axios.get('http://localhost:3000/cors').then((response) => {
+        console.log(response);
+        // 弹出提示
+        ElMessage({
+          message: response.data.message,
+          type: 'success',
+        });
+      }).catch((error) => {
+        console.log(error);
+        // 弹出提示
+        ElMessage({
+          message: error.message,
+          type: 'error',
+        });
+      })
+    }
   },
   mounted() {
     // 调用一次parseCSVData，防止tableData为空
@@ -191,12 +200,14 @@ export default {
 
 .upload {
   width: 50%;
-  margin: 0 auto; /* 水平居中 */
+  margin: 0 auto;
+  /* 水平居中 */
   text-align: center;
 }
 
 .button-area {
-  margin: 0 auto; /* 水平居中 */
+  margin: 0 auto;
+  /* 水平居中 */
   text-align: center;
 }
 

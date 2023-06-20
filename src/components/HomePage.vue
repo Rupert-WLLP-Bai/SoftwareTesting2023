@@ -50,7 +50,7 @@
         <div class="right-main">
           <el-tabs type="border-card" style="height:100%">
             <el-tab-pane label="测试">
-              <TestingView :code="code"/>
+              <TestingView :code="code" @responseData="responseData"/>
             </el-tab-pane>
 
             <el-tab-pane label="控制台">
@@ -134,6 +134,10 @@ export default {
   methods: {
     selectQuestion(question) {
       this.selectedQuestion  = question;
+      this.code = question.code;
+    },
+    responseData(data){
+      this.consoleOutput = data;
     }
   },
   computed: {

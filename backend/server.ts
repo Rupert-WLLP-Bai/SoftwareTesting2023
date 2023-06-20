@@ -60,33 +60,33 @@ interface ITestResult extends Document {
 
 // Create a logger
 const logger: Logger = winston.createLogger({
-      // 输出的日志格式 [时间] [日志级别] [日志内容]
-      // 不同的日志级别使用不同的颜色
-      // 日志级别设置为:debug
-      // 注意对齐
+  // 输出的日志格式 [时间] [日志级别] [日志内容]
+  // 不同的日志级别使用不同的颜色
+  // 日志级别设置为:debug
+  // 注意对齐
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.printf(
+      (info) =>
+        `[${info.timestamp}] [${info.level}] ${info.message}`
+    )
+  ),
+  transports: [
+    new winston.transports.Console({
+      level: 'debug',
       format: winston.format.combine(
-        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.colorize(),
         winston.format.printf(
           (info) =>
             `[${info.timestamp}] [${info.level}] ${info.message}`
         )
       ),
-      transports: [
-        new winston.transports.Console({
-          level: 'debug',
-          format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.printf(
-              (info) =>
-                `[${info.timestamp}] [${info.level}] ${info.message}` 
-            )
-          ),
-        }),
-        new winston.transports.File({
-          filename: 'logs/server.log',
-          level: 'debug',
-        }),
-      ],
+    }),
+    new winston.transports.File({
+      filename: 'logs/server.log',
+      level: 'debug',
+    }),
+  ],
 });
 
 // Create an Express application instance
@@ -225,7 +225,7 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
       describe('Function Tests', () => {
         test.each(testCases)('Test case %#: %p', (testCase) => {
           const inputParams = {};
-          const { testcaseId, ...input } = testCase; // Extract testcaseId from the testCase object
+          const { testCaseId, ...input } = testCase; // Extract testCaseId from the testCase object
           Object.keys(input).forEach((column) => {
             if (functionInfo.params.includes(column)) {
               inputParams[column] = JSON.parse(input[column]);
@@ -259,12 +259,14 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
             logger.error(`Error parsing test case: ${title}`);
             return null;
           }
-          const testCaseId = testCases[Number(match[1])].testcaseId; // Get the testcaseId from the corresponding test case object
+          
+          const testCaseId = testCases[Number(match[1])].testCaseId; // Get the testCaseId from the corresponding test case object
+          // logger.debug(`Test case ID: ${testCaseId}`);
           return {
             /*
              * Update the test result data structure
              * - Remove the functionId field
-             * - Use the testcaseId from the test case object
+             * - Use the testCaseId from the test case object
              * - Use the input and expectedOutput fields from the test case object
              */
             functionName: functionInfo.name,
@@ -277,6 +279,8 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
         });
 
         fs.unlinkSync(tempTestFile);
+        
+        // logger.debug(`Test results: ${JSON.stringify(testResults)}`);
 
         resolve(testResults);
       })
@@ -293,13 +297,13 @@ async function runTests(functionInfo: FunctionInfo, testCases: any[]): Promise<a
 async function handleRunTests(req: Request, res: Response) {
   logger.info('Running tests...');
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  logger.debug(`Files: ${JSON.stringify(files)}`);
+  // logger.debug(`Files: ${JSON.stringify(files)}`);
 
   const functionFile = files['function']?.[0];
   const testCasesFile = files['testcases']?.[0];
 
-  logger.debug(`Function file: ${functionFile}`);
-  logger.debug(`Test cases file: ${testCasesFile}`);
+  // logger.debug(`Function file: ${functionFile}`);
+  // logger.debug(`Test cases file: ${testCasesFile}`);
 
   logger.debug(`Function file: ${functionFile.originalname}`);
   logger.debug(`Test cases file: ${testCasesFile.originalname}`);
@@ -309,7 +313,7 @@ async function handleRunTests(req: Request, res: Response) {
     logger.warn('Empty function code.');
     return res.status(400).send('Empty function code.');
   }
-  logger.debug(`Function code: ${functionCode}`);
+  // logger.debug(`Function code: ${functionCode}`);
 
   const testCases: any[] = [];
 
@@ -325,7 +329,7 @@ async function handleRunTests(req: Request, res: Response) {
       testCases.push(data);
     })
     .on('end', () => {
-      logger.debug(`Test cases: ${JSON.stringify(testCases)}`);
+      // logger.debug(`Test cases: ${JSON.stringify(testCases)}`);
       runTests(functionInfo, testCases)
         .then((results) => {
           const savePromises = results.map((result: any) => {
